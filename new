@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026追星統計表</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Inter 字體 -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+        /* 確保日曆網格在移動設備上也能對齊 */
+        #calendar-grid > div {
+            min-height: 5rem; /* 確保在移動設備上有足夠點擊空間 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 min-h-screen p-4 sm:p-8">
+
+    <div id="app" class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 md:p-10 border border-gray-200">
+        
+        <!-- 標題與整體統計 -->
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-extrabold text-gray-800 tracking-tight mb-2">2026 追星統計表</h1>
+            <p class="text-sm text-gray-500">黑白灰風格設計 - 您的追星花費與收入儀表板</p>
+        </header>
+
+        <!-- 總體統計區塊 (主要數據: 總花費, 總收入, 淨餘額) -->
+        <div id="main-summary-section" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-center">
+            
+            <div class="p-5 bg-gray-900 text-white rounded-lg shadow-inner">
+                <p class="text-sm uppercase font-semibold text-gray-400">目前總花費 (TWD)</p>
+                <p id="total-spent" class="text-3xl font-bold mt-1">0</p>
+            </div>
+            
+            <div class="p-5 bg-gray-200 text-gray-900 rounded-lg shadow-inner">
+                <p class="text-sm uppercase font-semibold text-gray-600">目前總收入 (TWD)</p>
+                <p id="total-earned" class="text-3xl font-bold mt-1">0</p>
+            </div>
+
+            <div class="p-5 bg-gray-500 text-white rounded-lg shadow-inner">
+                <p class="text-sm uppercase font-semibold text-gray-300">淨餘額 (TWD)</p>
+                <p id="net-balance" class="text-3xl font-bold mt-1">0</p>
+            </div>
+
+        </div>
+
+        <!-- 分類花費統計區塊 (次要數據: 各類花費總額) -->
+        <h3 class="text-lg font-bold text-gray-700 mt-6 mb-3 border-t pt-4">分類花費總覽 (累積)</h3>
+        <div id="category-summary-section" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10 text-center">
+            
+            <!-- 專輯花費 -->
+            <div class="p-4 bg-gray-100 text-gray-800 rounded-lg border border-gray-300">
+                <p class="text-xs uppercase font-medium text-gray-500">專輯</p>
+                <p id="spent-album" class="text-xl font-bold mt-1 text-gray-900">0</p>
+            </div>
+            
+            <!-- 小卡花費 -->
+            <div class="p-4 bg-gray-100 text-gray-800 rounded-lg border border-gray-300">
+                <p class="text-xs uppercase font-medium text-gray-500">小卡</p>
+                <p id="spent-photocard" class="text-xl font-bold mt-1 text-gray-900">0</p>
+            </div>
+
+            <!-- 娃娃花費 -->
+            <div class="p-4 bg-gray-100 text-gray-800 rounded-lg border border-gray-300">
+                <p class="text-xs uppercase font-medium text-gray-500">娃娃</p>
+                <p id="spent-doll" class="text-xl font-bold mt-1 text-gray-900">0</p>
+            </div>
+
+            <!-- 其他花費 -->
+            <div class="p-4 bg-gray-100 text-gray-800 rounded-lg border border-gray-300">
+                <p class="text-xs uppercase font-medium text-gray-500">其他</p>
+                <p id="spent-other" class="text-xl font-bold mt-1 text-gray-900">0</p>
+            </div>
+        </div>
+
+
+        <!-- 月份導航與日曆 -->
+        <div class="flex justify-between items-center mb-6">
+            <button id="prev-month" class="p-2 text-gray-500 hover:text-gray-900 transition duration-200 rounded-full hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            
+            <div class="flex flex-col items-center">
+                 <h2 id="current-month-year" class="text-2xl font-bold text-gray-800">2026年 1月</h2>
+                 <!-- Gemini API 功能按鈕 -->
+                 <button id="generate-report" class="mt-2 text-xs py-1 px-3 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-300 transition duration-150 shadow-md">
+                     生成本月財務報告 ✨
+                 </button>
+            </div>
+
+            <button id="next-month" class="p-2 text-gray-500 hover:text-gray-900 transition duration-200 rounded-full hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+        </div>
+
+        <!-- 星期標題 (星期日為第一天) -->
+        <div class="grid grid-cols-7 text-center font-semibold text-sm text-gray-600 border-b border-gray-300 pb-2 mb-2">
+            <div>日</div>
+            <div>一</div>
+            <div>二</div>
+            <div>三</div>
+            <div>四</div>
+            <div>五</div>
+            <div>六</div>
+        </div>
+
+        <!-- 日曆網格 -->
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+            <!-- 日期方塊將由 JS 生成 -->
+        </div>
+        
+        <!-- 授權狀態顯示 (用於多用戶辨識) -->
+        <div class="mt-8 text-center text-xs text-gray-500 border-t pt-4">
+             <p>使用者ID: <span id="user-id">讀取中...</span></p>
+        </div>
+
+    </div>
+
+    <!-- 每日記錄輸入彈窗 (Modal) -->
+    <div id="input-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-100">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-900">記錄 2026-01-01 的收支</h3>
+            
+            <form id="daily-log-form">
+                <!-- 收入區塊 -->
+                <div class="mb-6 border border-gray-300 p-4 rounded-lg bg-gray-50">
+                    <label for="earned-amount" class="block text-lg font-medium text-gray-700 mb-2">當日收入 (賺多少錢)</label>
+                    <input type="number" id="earned-amount" min="0" value="0" placeholder="輸入收入金額 (TWD)"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-gray-500 focus:ring-gray-500 transition duration-150">
+                </div>
+
+                <!-- 花費區塊 -->
+                <div class="mb-6 border border-gray-900 p-4 rounded-lg bg-gray-800 text-white">
+                    <label class="block text-lg font-medium text-gray-200 mb-3">當日花費 (買入種類與金額)</label>
+                    
+                    <div id="spending-list" class="space-y-3">
+                        <!-- 動態生成的花費欄位 -->
+                    </div>
+
+                    <button type="button" id="add-spending" class="mt-4 w-full flex items-center justify-center text-sm font-medium border border-dashed border-gray-500 hover:border-gray-400 p-2 rounded-lg text-gray-400 hover:text-white transition">
+                        + 新增花費項目
+                    </button>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="delete-log" class="text-red-600 hover:text-red-800 p-3 rounded-lg transition duration-150" style="display: none;">
+                        刪除當日記錄
+                    </button>
+                    <button type="button" id="close-modal" class="py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                        取消
+                    </button>
+                    <button type="submit" class="py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150">
+                        儲存記錄
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 報告顯示彈窗 (Report Modal) - 新增 LLM 內容 -->
+    <div id="report-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 transform transition-all scale-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">追星財務報告</h3>
+                <button id="close-report-modal" class="p-1 text-gray-400 hover:text-gray-700 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <div id="report-content" class="min-h-32 bg-gray-50 p-4 rounded-lg text-gray-800 border border-gray-200">
+                <p id="report-text" class="whitespace-pre-wrap"></p>
+            </div>
+            
+            <div id="loading-indicator" class="text-center py-6 hidden">
+                <svg class="animate-spin h-5 w-5 text-gray-900 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-2 text-sm text-gray-600">正在生成報告，請稍候...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 載入 Firebase 模組 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, doc, setDoc, onSnapshot, collection, query, deleteDoc
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // 設定 Firebase Log 等級 (除錯用)
+        setLogLevel('Debug');
+
+        // --- 全域變數初始化 ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-fandom-tracker-2026';
+        
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+        
+        let currentYear = 2026;
+        let currentMonth = 0; // 0 = Jan
+        let selectedDate = null;
+        let logData = {}; // 儲存所有日期的記錄 { 'YYYY-MM-DD': { totalSpent: N, totalEarned: N, entries: [...] } }
+
+        const categories = ["專輯", "小卡", "娃娃", "其他"];
+        // 將分類名稱映射到 DOM ID 以便更新總覽
+        const categoryIdMap = {
+            "專輯": "spent-album",
+            "小卡": "spent-photocard",
+            "娃娃": "spent-doll",
+            "其他": "spent-other"
+        };
+
+        // --- DOM 元素快取 ---
+        const calendarGrid = document.getElementById('calendar-grid');
+        const currentMonthYear = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const modal = document.getElementById('input-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const dailyLogForm = document.getElementById('daily-log-form');
+        const spendingList = document.getElementById('spending-list');
+        const addSpendingBtn = document.getElementById('add-spending');
+        const totalSpentEl = document.getElementById('total-spent');
+        const totalEarnedEl = document.getElementById('total-earned');
+        const netBalanceEl = document.getElementById('net-balance');
+        const userIdEl = document.getElementById('user-id');
+        const deleteLogBtn = document.getElementById('delete-log');
+
+        // LLM 相關元素
+        const generateReportBtn = document.getElementById('generate-report');
+        const reportModal = document.getElementById('report-modal');
+        const reportTextEl = document.getElementById('report-text');
+        const loadingIndicatorEl = document.getElementById('loading-indicator');
+        const closeReportModalBtn = document.getElementById('close-report-modal');
+
+        // --- Firebase 初始化與授權 ---
+        const initializeFirebase = async () => {
+            if (!firebaseConfig) {
+                console.error("Firebase 配置未定義。無法初始化資料庫。");
+                isAuthReady = true;
+                return;
+            }
+            
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdEl.textContent = userId;
+                        isAuthReady = true;
+                        console.log("Firebase 認證成功，用戶 ID:", userId);
+                        // 認證完成後，開始載入資料和渲染日曆
+                        startListeningForData();
+                        renderCalendar();
+                    } else {
+                        // 嘗試使用自訂 Token 登入，如果失敗則匿名登入
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase 初始化失敗:", error);
+                userIdEl.textContent = "認證失敗";
+            }
+        };
+
+        // --- 資料庫操作 ---
+
+        // 集合路徑
+        const getCollectionPath = () => {
+            if (userId) {
+                // 私人資料路徑: /artifacts/{appId}/users/{userId}/fandom_log_2026
+                return `artifacts/${appId}/users/${userId}/fandom_log_2026`;
+            }
+            return null;
+        }
+
+        // 啟動資料監聽
+        const startListeningForData = () => {
+            const collectionPath = getCollectionPath();
+            if (!db || !isAuthReady || !collectionPath) return;
+
+            // 監聽整個集合以計算總數並更新日曆
+            const q = collection(db, collectionPath);
+
+            onSnapshot(q, (snapshot) => {
+                logData = {};
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    logData[doc.id] = data; // doc.id 就是 YYYY-MM-DD
+                });
+                console.log("Firestore 資料已更新:", logData);
+                updateTotals();
+                renderCalendar(); // 重新渲染日曆以顯示新數據
+            }, (error) => {
+                console.error("監聽 Firestore 失敗:", error);
+            });
+        };
+
+        // 儲存或更新每日記錄
+        const saveDailyLog = async (dateKey, data) => {
+            const collectionPath = getCollectionPath();
+            if (!db || !collectionPath) {
+                console.error("資料庫未準備好。");
+                return;
+            }
+            
+            const docRef = doc(db, collectionPath, dateKey);
+
+            try {
+                await setDoc(docRef, data, { merge: true });
+                console.log("記錄已成功儲存:", dateKey);
+                closeModal();
+            } catch (error) {
+                console.error("儲存記錄失敗:", error);
+                showNotification(`儲存失敗: ${error.message}`);
+            }
+        };
+
+        // 刪除每日記錄
+        const deleteDailyLog = async (dateKey) => {
+            const collectionPath = getCollectionPath();
+            if (!db || !collectionPath) {
+                console.error("資料庫未準備好。");
+                return;
+            }
+
+            // 使用自訂模態框替代 window.confirm()
+            if (!await customConfirm("確認刪除", `您確定要刪除 ${dateKey} 的所有追星記錄嗎？`)) {
+                return;
+            }
+            
+            const docRef = doc(db, collectionPath, dateKey);
+
+            try {
+                await deleteDoc(docRef);
+                console.log("記錄已成功刪除:", dateKey);
+                closeModal();
+            } catch (error) {
+                console.error("刪除記錄失敗:", error);
+                showNotification(`刪除失敗: ${error.message}`);
+            }
+        }
+
+
+        // --- 日期與日曆邏輯 ---
+
+        // 初始化日期為 2026 年 1 月 (或當前日期，如果是在 2026 年)
+        const initDate = () => {
+            currentYear = 2026;
+            // 預設從 2026 年 1 月開始，如果在 2026 年則從當前月份開始
+            const today = new Date();
+            if (today.getFullYear() === 2026) {
+                currentMonth = today.getMonth();
+            } else {
+                currentMonth = 0; // Default to January
+            }
+        };
+        
+        // 渲染日曆
+        const renderCalendar = () => {
+            currentMonthYear.textContent = `${currentYear}年 ${currentMonth + 1}月`;
+            calendarGrid.innerHTML = ''; // 清空舊日曆
+
+            // 取得該月第一天是星期幾 (0=日, 1=一... 4=四 for Jan 1, 2026)
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            // 取得該月總天數
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // 填充前置空位 (確保日曆從正確的星期開始)
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const emptyCell = document.createElement('div');
+                // 使用 bg-gray-50 淺底色填充，保持結構完整
+                emptyCell.classList.add('p-2', 'h-24', 'text-sm', 'bg-gray-50', 'rounded-lg', 'opacity-50');
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            // 填充日期
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const log = logData[dateKey];
+                const cell = document.createElement('div');
+                cell.classList.add(
+                    'p-2', 'h-24', 'text-sm', 'rounded-lg', 'cursor-pointer', 'transition', 'duration-150',
+                    'relative', 'shadow-sm', 'hover:shadow-md', 'hover:bg-gray-200'
+                );
+
+                // 基礎樣式：黑白灰
+                cell.style.backgroundColor = 'white';
+                cell.style.border = '1px solid #e5e7eb'; // 淺灰邊框
+
+                // 預設 HTML 內容 (僅包含日期數字)
+                let logHtml = `<span class="text-lg font-bold text-gray-900">${day}</span>`; 
+
+                if (log) {
+                    const spent = parseFloat(log.totalSpent || 0);
+                    const earned = parseFloat(log.totalEarned || 0);
+                    
+                    cell.style.backgroundColor = spent > 0 || earned > 0 ? '#f3f4f6' : 'white'; // 輕微底色表示有記錄
+                    
+                    // 根據淨餘額調整強調色
+                    if (spent > earned) {
+                        // 淨虧損: 紅色強調
+                        cell.style.border = '2px solid #ef4444'; 
+                    } else if (earned > spent) {
+                         // 淨盈餘: 綠色強調
+                        cell.style.border = '2px solid #22c55e'; 
+                    } else if (spent > 0) {
+                        // 平衡: 深灰強調
+                        cell.style.border = '2px solid #6b7280'; 
+                    }
+
+                    // 重新構建包含日期和數據的 HTML 結構
+                    logHtml = `
+                        <div class="flex justify-between items-start mb-1">
+                             <span class="text-lg font-bold text-gray-900">${day}</span>
+                             ${spent > 0 ? `<span class="text-sm font-bold text-red-600">-${spent.toLocaleString('zh-TW')}</span>` : ''}
+                        </div>
+                        <div class="space-y-0.5">
+                            ${earned > 0 ? `<p class="text-xs font-medium text-gray-800">收入: <span class="text-green-600">${earned.toLocaleString('zh-TW')}</span></p>` : ''}
+                        </div>
+                    `;
+                }
+
+                cell.innerHTML = logHtml; // 應用最終的 HTML 內容
+                cell.addEventListener('click', () => openModal(dateKey));
+                calendarGrid.appendChild(cell);
+            }
+        };
+
+        // 月份切換處理
+        const handleMonthChange = (direction) => {
+            currentMonth += direction;
+            if (currentMonth > 11) {
+                currentMonth = 11; // 保持在 12 月
+                // 為了只在 2026 年內，這裡不再增加年份
+                showNotification("只能查看 2026 年的日曆。");
+            } else if (currentMonth < 0) {
+                currentMonth = 0; // 保持在 1 月
+                // 為了只在 2026 年內，這裡不再減少年份
+                 showNotification("只能查看 2026 年的日曆。");
+            }
+            
+            // 確保年份固定在 2026
+            currentYear = 2026;
+            
+            renderCalendar();
+        };
+
+        // --- 統計計算 ---
+        const updateTotals = () => {
+            let totalSpent = 0;
+            let totalEarned = 0;
+            // 初始化分類總計
+            const categoryTotals = {};
+            categories.forEach(cat => categoryTotals[cat] = 0);
+
+            Object.values(logData).forEach(log => {
+                totalSpent += parseFloat(log.totalSpent || 0);
+                totalEarned += parseFloat(log.totalEarned || 0);
+                
+                // 累計分類花費
+                log.entries.forEach(entry => {
+                    if (entry.type && entry.spent) {
+                        categoryTotals[entry.type] = (categoryTotals[entry.type] || 0) + entry.spent;
+                    }
+                });
+            });
+            
+            const netBalance = totalEarned - totalSpent;
+
+            // 1. 更新主要總計 DOM
+            totalSpentEl.textContent = totalSpent.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            totalEarnedEl.textContent = totalEarned.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            netBalanceEl.textContent = netBalance.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+            // 淨餘額顏色提示
+            const balanceDiv = netBalanceEl.closest('div');
+            balanceDiv.classList.remove('bg-gray-500', 'bg-green-600', 'bg-red-600');
+            if (netBalance > 0) {
+                balanceDiv.classList.add('bg-green-600');
+            } else if (netBalance < 0) {
+                balanceDiv.classList.add('bg-red-600');
+            } else {
+                balanceDiv.classList.add('bg-gray-500');
+            }
+
+            // 2. 更新分類總計 DOM
+            categories.forEach(cat => {
+                const amount = categoryTotals[cat] || 0;
+                const elementId = categoryIdMap[cat];
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = amount.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                }
+            });
+        };
+        
+        // --- 彈窗 (Modal) 邏輯 ---
+        
+        const openModal = (dateKey) => {
+            selectedDate = dateKey;
+            modalTitle.textContent = `記錄 ${dateKey} 的收支`;
+            
+            const existingLog = logData[dateKey];
+            
+            // 重置表單
+            dailyLogForm.reset();
+            spendingList.innerHTML = '';
+            
+            // 載入現有數據
+            if (existingLog) {
+                document.getElementById('earned-amount').value = parseFloat(existingLog.totalEarned || 0);
+                
+                if (existingLog.entries && existingLog.entries.length > 0) {
+                    existingLog.entries.forEach(entry => addSpendingField(entry.type, entry.spent));
+                } else {
+                    addSpendingField(); // 至少一個空白欄位
+                }
+                deleteLogBtn.style.display = 'inline-block';
+
+            } else {
+                document.getElementById('earned-amount').value = 0;
+                addSpendingField();
+                deleteLogBtn.style.display = 'none';
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            selectedDate = null;
+        };
+        
+        // 動態新增花費輸入欄位
+        const addSpendingField = (category = categories[0], amount = 0) => {
+            const index = spendingList.children.length;
+            const item = document.createElement('div');
+            item.classList.add('flex', 'space-x-2', 'spending-entry', 'items-center', 'bg-gray-700', 'p-2', 'rounded-md');
+            item.innerHTML = `
+                <select name="category-${index}"
+                    class="block w-2/5 p-2 rounded-md bg-gray-600 text-white border-none focus:ring-gray-300 focus:border-gray-300 transition duration-150">
+                    ${categories.map(c => `<option value="${c}" ${c === category ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+                <input type="number" name="amount-${index}" min="0" value="${amount}" placeholder="金額 (TWD)"
+                    class="block w-3/5 p-2 rounded-md border-gray-500 shadow-sm text-gray-900 border focus:border-gray-300 focus:ring-gray-300 transition duration-150">
+                <button type="button" class="remove-spending p-1 text-gray-400 hover:text-red-400 transition" aria-label="移除此項目">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.728-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" /></svg>
+                </button>
+            `;
+            
+            item.querySelector('.remove-spending').addEventListener('click', () => {
+                // 必須保留至少一個欄位
+                if (spendingList.children.length > 1) {
+                    item.remove();
+                } else {
+                    // 如果只有一個，則清空內容而不是移除
+                    item.querySelector('select').value = categories[0];
+                    item.querySelector('input').value = 0;
+                }
+            });
+
+            spendingList.appendChild(item);
+        };
+
+        // 表單提交處理
+        const handleFormSubmit = (e) => {
+            e.preventDefault();
+            if (!selectedDate) return;
+            
+            const earnedAmount = parseFloat(document.getElementById('earned-amount').value || 0);
+            let totalSpent = 0;
+            let entries = [];
+            
+            // 收集花費數據
+            const spendingEntries = spendingList.querySelectorAll('.spending-entry');
+            spendingEntries.forEach(entry => {
+                const category = entry.querySelector('select').value;
+                const amount = parseFloat(entry.querySelector('input').value || 0);
+                
+                if (amount > 0) {
+                    totalSpent += amount;
+                    entries.push({ type: category, spent: amount });
+                }
+            });
+            
+            const finalData = {
+                date: selectedDate,
+                totalEarned: earnedAmount,
+                totalSpent: totalSpent,
+                entries: entries
+            };
+
+            // 檢查是否所有值都為零，如果是，則刪除記錄
+            if (totalSpent === 0 && earnedAmount === 0) {
+                // 如果是空記錄，直接刪除，避免寫入空文件
+                if (logData[selectedDate]) {
+                    deleteDailyLog(selectedDate);
+                } else {
+                    closeModal(); // 如果原本就沒有記錄，直接關閉
+                }
+            } else {
+                saveDailyLog(selectedDate, finalData);
+            }
+        };
+
+        // 自訂確認框替代 alert/confirm
+        const customConfirm = (title, message) => {
+             return new Promise(resolve => {
+                const existingModal = document.getElementById('custom-confirm-modal');
+                if (existingModal) existingModal.remove();
+
+                const confirmModal = document.createElement('div');
+                confirmModal.id = 'custom-confirm-modal';
+                confirmModal.classList.add('fixed', 'inset-0', 'bg-gray-900', 'bg-opacity-75', 'flex', 'items-center', 'justify-center', 'p-4', 'z-50');
+                confirmModal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+                        <h4 class="text-xl font-bold text-gray-900 mb-3">${title}</h4>
+                        <p class="text-gray-600 mb-6">${message}</p>
+                        <div class="flex justify-end space-x-3">
+                            <button id="cancel-btn" class="py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">取消</button>
+                            <button id="ok-btn" class="py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">確認</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(confirmModal);
+
+                const removeModal = () => document.body.removeChild(confirmModal);
+
+                document.getElementById('ok-btn').addEventListener('click', () => {
+                    removeModal();
+                    resolve(true);
+                });
+
+                document.getElementById('cancel-btn').addEventListener('click', () => {
+                    removeModal();
+                    resolve(false);
+                });
+            });
+        };
+
+        // 簡單通知提示
+        const showNotification = (message) => {
+            const existingNotif = document.getElementById('notification-box');
+            if (existingNotif) existingNotif.remove();
+
+            const notif = document.createElement('div');
+            notif.id = 'notification-box';
+            notif.classList.add('fixed', 'bottom-4', 'right-4', 'bg-gray-900', 'text-white', 'p-4', 'rounded-lg', 'shadow-xl', 'text-sm', 'z-50', 'transition-opacity', 'duration-300', 'opacity-0');
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => {
+                notif.classList.add('opacity-100');
+            }, 10);
+            
+            setTimeout(() => {
+                notif.classList.remove('opacity-100');
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        };
+
+
+        // --- Gemini API 邏輯 ---
+
+        /**
+         * 處理 API 錯誤並實現指數退避 (Exponential Backoff)
+         */
+        const withExponentialBackoff = async (apiCall, maxRetries = 3) => {
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    return await apiCall();
+                } catch (error) {
+                    if (attempt === maxRetries - 1) {
+                        throw error;
+                    }
+                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                    // console.log(`API 呼叫失敗，重試中... 延遲 ${delay.toFixed(0)}ms`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        };
+
+        /**
+         * 聚合本月數據並生成 LLM 提示
+         */
+        const aggregateMonthlyData = () => {
+            const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+            const monthlyLogs = Object.entries(logData)
+                .filter(([dateKey]) => dateKey.startsWith(monthKey))
+                .map(([, log]) => log);
+
+            let totalSpent = 0;
+            let totalEarned = 0;
+            const spendingByCategory = {};
+
+            categories.forEach(cat => spendingByCategory[cat] = 0);
+
+            monthlyLogs.forEach(log => {
+                totalSpent += parseFloat(log.totalSpent || 0);
+                totalEarned += parseFloat(log.totalEarned || 0);
+                
+                log.entries.forEach(entry => {
+                    if (entry.type && entry.spent) {
+                        spendingByCategory[entry.type] = (spendingByCategory[entry.type] || 0) + entry.spent;
+                    }
+                });
+            });
+
+            const netBalance = totalEarned - totalSpent;
+            
+            // 格式化數據為提示文字
+            const categoryDetails = Object.entries(spendingByCategory)
+                .filter(([, amount]) => amount > 0)
+                .map(([cat, amount]) => `${cat} 花費: ${amount.toLocaleString('zh-TW')} TWD`)
+                .join('； ');
+
+            const prompt = `
+                請以一個充滿活力、積極且略帶幽默感的追星財務顧問身分，為使用者撰寫一份關於 
+                ${currentYear}年 ${currentMonth + 1}月 
+                的追星財務活動的敘事性摘要。
+                
+                這是本月的財務數據摘要（所有金額均為 TWD）：
+                - 總花費: ${totalSpent.toLocaleString('zh-TW')}
+                - 總收入 (例如：周邊轉賣、代購佣金): ${totalEarned.toLocaleString('zh-TW')}
+                - 淨餘額: ${netBalance > 0 ? `盈餘 ${netBalance.toLocaleString('zh-TW')}` : netBalance < 0 ? `虧損 ${Math.abs(netBalance).toLocaleString('zh-TW')}` : '收支平衡'}
+                - 花費明細: ${categoryDetails || '無特定支出類別'}
+                
+                請將回覆限制在一個鼓勵性的段落內（約 100-150 字），總結主要的支出類型，並根據淨餘額提供一句正向的結語或小建議。使用繁體中文。
+            `;
+
+            return { prompt, totalSpent, totalEarned };
+        }
+
+        /**
+         * 調用 Gemini API 生成報告
+         */
+        const generateMonthlyReport = async () => {
+            const { prompt, totalSpent, totalEarned } = aggregateMonthlyData();
+            
+            // 清除舊報告和顯示載入狀態
+            reportTextEl.textContent = '';
+            
+            // 如果本月沒有記錄，則不調用 API
+            if (totalSpent === 0 && totalEarned === 0) {
+                reportTextEl.textContent = '本月尚未記錄任何收入或支出。請先在日曆中點擊日期進行記錄！';
+                loadingIndicatorEl.classList.add('hidden');
+                return;
+            }
+            
+            loadingIndicatorEl.classList.remove('hidden');
+            
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                
+                const apiCall = async () => {
+                    const payload = {
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: {
+                            parts: [{ text: "你是一個專業、熱情且正向的追星財務顧問，使用繁體中文，將財務數據轉化為生動的單一段落報告。" }]
+                        },
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`API 錯誤: ${response.statusText} (${errorBody.error.message})`);
+                    }
+
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "無法生成報告。請稍後再試。";
+                };
+
+                const generatedText = await withExponentialBackoff(apiCall);
+                
+                reportTextEl.textContent = generatedText;
+
+            } catch (error) {
+                console.error("生成報告失敗:", error);
+                reportTextEl.textContent = `報告生成失敗: ${error.message}`;
+            } finally {
+                loadingIndicatorEl.classList.add('hidden');
+            }
+        };
+
+        // --- 事件監聽器 ---
+        prevMonthBtn.addEventListener('click', () => handleMonthChange(-1));
+        nextMonthBtn.addEventListener('click', () => handleMonthChange(1));
+        
+        document.getElementById('close-modal').addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            // 點擊背景關閉
+            if (e.target === modal) closeModal();
+        });
+
+        addSpendingBtn.addEventListener('click', () => addSpendingField());
+        dailyLogForm.addEventListener('submit', handleFormSubmit);
+        deleteLogBtn.addEventListener('click', () => deleteDailyLog(selectedDate));
+        
+        // LLM 按鈕事件
+        generateReportBtn.addEventListener('click', () => {
+            // 開啟報告彈窗
+            reportModal.classList.remove('hidden');
+            reportModal.classList.add('flex');
+            // 設定標題
+            reportModal.querySelector('h3').textContent = `${currentYear}年 ${currentMonth + 1}月 追星財務報告`;
+            // 開始生成報告
+            generateMonthlyReport();
+        });
+
+        // 關閉報告彈窗
+        closeReportModalBtn.addEventListener('click', () => {
+            reportModal.classList.add('hidden');
+            reportModal.classList.remove('flex');
+        });
+        reportModal.addEventListener('click', (e) => {
+            // 點擊背景關閉
+            if (e.target === reportModal) {
+                reportModal.classList.add('hidden');
+                reportModal.classList.remove('flex');
+            }
+        });
+
+
+        // --- 啟動應用程式 ---
+        initDate();
+        initializeFirebase();
+
+    </script>
+</body>
+</html>
